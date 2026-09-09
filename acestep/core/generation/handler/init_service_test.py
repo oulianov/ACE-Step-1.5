@@ -1075,7 +1075,7 @@ class RocmDtypeTests(unittest.TestCase):
         bf16_mock.assert_called_once_with(1)
 
     def test_load_text_encoder_uses_cpu_safe_dtype_when_offloaded(self):
-        """It casts the text encoder to the CPU-safe dtype during CPU offload."""
+        """It loads the text encoder in the CPU-safe dtype during CPU offload."""
         host = _Host(project_root="K:/fake_root", device="cuda")
         host.offload_to_cpu = True
         host.dtype = torch.bfloat16
@@ -1113,7 +1113,10 @@ class RocmDtypeTests(unittest.TestCase):
         )
         self.assertIs(host.text_encoder, fake_encoder)
         self.assertIs(host.text_tokenizer, fake_tokenizer)
-        self.assertEqual(fake_encoder.to_calls, ["cpu", torch.float32])
+        self.assertEqual(fake_encoder.to_calls, ["cpu"])
+        fake_transformers.AutoModel.from_pretrained.assert_called_once_with(
+            result, dtype=torch.float32
+        )
         self.assertTrue(fake_encoder.eval_called)
 
 if __name__ == "__main__":

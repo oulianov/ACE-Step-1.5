@@ -195,12 +195,12 @@ class InitServiceLoaderMixin(InitServiceLoaderComponentsMixin):
         self._apply_cuda_bool_argsort_workaround()
 
         if not self.offload_to_cpu:
-            self.model = self.model.to(device).to(self.dtype)
+            self.model = self.model.to(device=device, dtype=self.dtype)
         elif not self.offload_dit_to_cpu:
             logger.info(f"[initialize_service] Keeping main model on {device} (persistent)")
-            self.model = self.model.to(device).to(self.dtype)
+            self.model = self.model.to(device=device, dtype=self.dtype)
         else:
-            self.model = self.model.to("cpu").to(self.dtype)
+            self.model = self.model.to(device="cpu", dtype=self.dtype)
         self.model.eval()
 
         if compile_model:

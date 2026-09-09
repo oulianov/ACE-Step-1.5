@@ -1,91 +1,81 @@
-"""
-ACE-Step Training Module
+"""Training APIs loaded on demand so inference can import adapter configuration cheaply."""
 
-This module provides LoRA training functionality for ACE-Step models,
-including dataset building, audio labeling, and training utilities.
-"""
+from importlib import import_module
+from typing import Any
 
-from acestep.training.dataset_builder import DatasetBuilder, AudioSample
-from acestep.training.configs import LoRAConfig, LoKRConfig, TrainingConfig
-from acestep.training.lora_injection import (
-    inject_lora_into_dit,
-    freeze_non_lora_parameters,
-)
-from acestep.training.lora_checkpoint import (
-    save_lora_weights,
-    load_lora_weights,
-    save_training_checkpoint,
-    load_training_checkpoint,
-)
-from acestep.training.lora_utils import (
-    merge_lora_weights,
-    check_peft_available,
-)
-from acestep.training.lokr_utils import (
-    inject_lokr_into_dit,
-    save_lokr_weights,
-    load_lokr_weights,
-    check_lycoris_available,
-)
-from acestep.training.data_module import (
-    # Preprocessed (recommended)
-    PreprocessedTensorDataset,
-    PreprocessedDataModule,
-    collate_preprocessed_batch,
-    # Legacy (raw audio)
-    AceStepTrainingDataset,
-    AceStepDataModule,
-    collate_training_batch,
-    load_dataset_from_json,
-)
-from acestep.training.trainer import (
-    LoRATrainer,
-    LoKRTrainer,
-    PreprocessedLoRAModule,
-    PreprocessedLoKRModule,
-    LIGHTNING_AVAILABLE,
-)
+_EXPORT_MODULES = {
+    "DatasetBuilder": "acestep.training.dataset_builder",
+    "AudioSample": "acestep.training.dataset_builder",
+    "LoRAConfig": "acestep.training.configs",
+    "LoKRConfig": "acestep.training.configs",
+    "TrainingConfig": "acestep.training.configs",
+    "inject_lora_into_dit": "acestep.training.lora_injection",
+    "freeze_non_lora_parameters": "acestep.training.lora_injection",
+    "save_lora_weights": "acestep.training.lora_checkpoint",
+    "load_lora_weights": "acestep.training.lora_checkpoint",
+    "save_training_checkpoint": "acestep.training.lora_checkpoint",
+    "load_training_checkpoint": "acestep.training.lora_checkpoint",
+    "merge_lora_weights": "acestep.training.lora_utils",
+    "check_peft_available": "acestep.training.lora_utils",
+    "inject_lokr_into_dit": "acestep.training.lokr_utils",
+    "save_lokr_weights": "acestep.training.lokr_utils",
+    "load_lokr_weights": "acestep.training.lokr_utils",
+    "check_lycoris_available": "acestep.training.lokr_utils",
+    "PreprocessedTensorDataset": "acestep.training.data_module",
+    "PreprocessedDataModule": "acestep.training.data_module",
+    "collate_preprocessed_batch": "acestep.training.data_module",
+    "AceStepTrainingDataset": "acestep.training.data_module",
+    "AceStepDataModule": "acestep.training.data_module",
+    "collate_training_batch": "acestep.training.data_module",
+    "load_dataset_from_json": "acestep.training.data_module",
+    "LoRATrainer": "acestep.training.trainer",
+    "LoKRTrainer": "acestep.training.trainer",
+    "PreprocessedLoRAModule": "acestep.training.trainer",
+    "PreprocessedLoKRModule": "acestep.training.trainer",
+    "LIGHTNING_AVAILABLE": "acestep.training.trainer",
+}
 
 
-def check_lightning_available():
-    """Check if Lightning Fabric is available."""
-    return LIGHTNING_AVAILABLE
+def __getattr__(name: str) -> Any:
+    """Resolve public training APIs only when requested; reject unknown attributes."""
+    module_name = _EXPORT_MODULES.get(name)
+    if module_name is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    value = getattr(import_module(module_name), name)
+    globals()[name] = value
+    return value
+
+
+def check_lightning_available() -> bool:
+    """Check Lightning availability when a caller requests training support."""
+    return import_module("acestep.training.trainer").LIGHTNING_AVAILABLE
 
 
 __all__ = [
-    # Dataset Builder
     "DatasetBuilder",
     "AudioSample",
-    # Configs
     "LoRAConfig",
     "LoKRConfig",
     "TrainingConfig",
-    # LoRA Injection
     "inject_lora_into_dit",
     "freeze_non_lora_parameters",
-    # LoRA Checkpoint
     "save_lora_weights",
     "load_lora_weights",
     "save_training_checkpoint",
     "load_training_checkpoint",
-    # LoRA Utils
     "merge_lora_weights",
     "check_peft_available",
-    # LoKr Utils
     "inject_lokr_into_dit",
     "save_lokr_weights",
     "load_lokr_weights",
     "check_lycoris_available",
-    # Data Module (Preprocessed - Recommended)
     "PreprocessedTensorDataset",
     "PreprocessedDataModule",
     "collate_preprocessed_batch",
-    # Data Module (Legacy)
     "AceStepTrainingDataset",
     "AceStepDataModule",
     "collate_training_batch",
     "load_dataset_from_json",
-    # Trainer
     "LoRATrainer",
     "LoKRTrainer",
     "PreprocessedLoRAModule",
