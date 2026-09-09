@@ -610,6 +610,7 @@ class InitServiceMixinTests(unittest.TestCase):
                     patch("torch.cuda.empty_cache"), \
                     patch("torch.cuda.synchronize", side_effect=RuntimeError("oom during sync")), \
                     patch("transformers.AutoModel.from_pretrained", return_value=_DummyModel()), \
+                    patch.object(host, "_sync_alignment_config", create=True), \
                     patch.object(host, "is_flash_attention_available", return_value=False):
                 attn = host._load_main_model_from_checkpoint(
                     model_checkpoint_path=checkpoint_dir,
@@ -1085,8 +1086,8 @@ class RocmDtypeTests(unittest.TestCase):
                 self.to_calls = []
                 self.eval_called = False
 
-            def to(self, value):
-                self.to_calls.append(value)
+            def to(self, *, device, dtype):
+                self.to_calls.append((device, dtype))
                 return self
 
             def eval(self):
@@ -1113,7 +1114,7 @@ class RocmDtypeTests(unittest.TestCase):
         )
         self.assertIs(host.text_encoder, fake_encoder)
         self.assertIs(host.text_tokenizer, fake_tokenizer)
-        self.assertEqual(fake_encoder.to_calls, ["cpu"])
+        self.assertEqual(fake_encoder.to_calls, [("cpu", torch.float32)])
         fake_transformers.AutoModel.from_pretrained.assert_called_once_with(
             result, dtype=torch.float32
         )

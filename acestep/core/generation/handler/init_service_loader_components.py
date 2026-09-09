@@ -94,6 +94,6 @@ class InitServiceLoaderComponentsMixin:
         target_device = "cpu" if self.offload_to_cpu else device
         encoder_dtype = self._get_vae_dtype("cpu") if self.offload_to_cpu else self.dtype
         self.text_encoder = AutoModel.from_pretrained(text_encoder_path, dtype=encoder_dtype)
-        self.text_encoder = self.text_encoder.to(target_device)
+        self.text_encoder = self.text_encoder.to(device=target_device, dtype=encoder_dtype)
         self.text_encoder.eval()
         return text_encoder_path
